@@ -1,5 +1,6 @@
 const router=require("express").Router();
 const Post=require("../models/Post");
+const User = require("../models/User");
 
 // Create a user 
 router.post("/",async(req,res)=>{
@@ -41,7 +42,7 @@ router.delete("/:id",async(req,res)=>{
     }
 });
 // like / dislike a post 
-router.put(":id/like",async(req,res)=>{
+router.put("/:id/like",async(req,res)=>{
     try{
         const post= await Post.findById(req.params.id);
         if(!post.likes.includes(req.body.userId)){
@@ -54,6 +55,32 @@ router.put(":id/like",async(req,res)=>{
         }
     }catch(err){
         res.status(500).json(err)
+    }
+})
+
+// get a post 
+router.get("/:id",async(req,res)=>{
+    try{
+        const post =await Post.findById(req.params.id)
+        res.status(200).json(post)
+    }catch(err){
+        res.status(500).json(err)
+    }
+})
+
+// get timeline post 
+router.get("/timeline/all",async(req,res)=>{
+    try{
+        const currentUser=await User.findById(req.body.userId);
+        const userPosts=await Post.findById({userId:currentUser._id});
+        const friendsPosts=await Promise.all(
+            currentUser.followings.map((friendId)=>{
+                return Post.findById({userId:friendId})
+            })
+        )
+        res.json(userPosts.concat(...friendsPosts));
+    }catch(err){
+        res.status(500).json(err);
     }
 })
 module.exports=router;
